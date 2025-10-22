@@ -16,11 +16,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Debug OIDC token claims
+        uses: actions/github-script@v6
+        with:
+          script: |
+            function decodeClaims(token) {
+              const [, payload] = token.split('.')
+              const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+              const padding = (4 - (normalized.length % 4)) % 4
+              const padded = normalized.padEnd(normalized.length + padding, '=')
+              return JSON.parse(Buffer.from(padded, 'base64').toString('utf8'))
+            }
+            const aud = 'sts.amazonaws.com'
+            const token = await core.getIDToken(aud)
+            const claims = decodeClaims(token)
+            console.log('OIDC claims:', JSON.stringify({ aud: claims.aud, sub: claims.sub, iss: claims.iss }, null, 2))
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::422017356225:role/ai-twin-devops-dev
           aws-region: us-east-2
+          role-skip-session-tagging: true
 
       - name: Who am I
         run: aws sts get-caller-identity
