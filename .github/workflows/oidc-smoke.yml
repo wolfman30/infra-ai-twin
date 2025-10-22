@@ -41,3 +41,56 @@ jobs:
 
       - name: Who am I
         run: aws sts get-caller-identity
+
+      - name: Manual STS debug (assume with token)
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const https = require('https');
+            const aud = 'sts.amazonaws.com';
+            const roleArn = 'arn:aws:iam::422017356225:role/ai-twin-devops-dev';
+            const token = await core.getIDToken(aud);
+
+            const params = new URLSearchParams({
+              Action: 'AssumeRoleWithWebIdentity',
+              Version: '2011-06-15',
+              RoleArn: roleArn,
+              RoleSessionName: 'OidcSmokeDebug',
+              WebIdentityToken: token,
+              DurationSeconds: '900'
+            });
+
+            await new Promise((resolve) => {
+              const req = https.request({
+                method: 'POST',
+                hostname: 'sts.amazonaws.com',
+                path: '/',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+              }, (res) => {
+                let data = '';
+                res.on('data', (c) => data += c);
+                res.on('end', () => {
+                  if (res.statusCode === 200) {
+                    core.info('Manual STS assume succeeded.');
+                  } else {
+                    const msg = data.match(/<Message>([^<]+)<\/Message>/)?.[1];
+                    const encoded = data.match(/<EncodedMessage>([^<]+)<\/EncodedMessage>/)?.[1];
+                    core.info(`Manual STS assume failed: ${msg || 'unknown'}`);
+                    if (encoded) {
+                      try {
+                        const decoded = Buffer.from(encoded, 'base64').toString('utf8');
+                        core.info(`Decoded detail: ${decoded}`);
+                      } catch (e) {
+                        core.info('Could not decode EncodedMessage');
+                      }
+                    } else {
+                      core.info(`STS error body: ${data}`);
+                    }
+                  }
+                  resolve();
+                });
+              });
+              req.on('error', (e) => { core.info(`HTTPS error: ${e}`); resolve(); });
+              req.write(params.toString());
+              req.end();
+            });
