@@ -25,7 +25,7 @@ module "deployer_role" {
   role_name                = "ai-twin-devops-dev"
   github_oidc_provider_arn = local.github_oidc_provider_arn
   allowed_subs             = [
-    "repo:wolfman30/infra-ai-twin:ref:refs/heads/main"
+    "repo:wolfman30/infra-ai-twin:*"
   ]
   state_bucket_arn        = local.state_bucket_arn
   state_bucket_prefixes   = ["dev/"]
@@ -42,4 +42,3 @@ output "deployer_role_arn" {
   value       = module.deployer_role.role_arn
   description = "Deployer role ARN for dev"
 }
-
