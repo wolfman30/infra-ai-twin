@@ -25,7 +25,7 @@ data "aws_iam_policy_document" "assume_role" {
       values   = [var.issuer]
     }
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:aud"
       values   = [var.audience]
     }

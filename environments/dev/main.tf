@@ -27,6 +27,7 @@ module "deployer_role" {
   allowed_subs             = [
     "repo:wolfman30/infra-ai-twin:*"
   ]
+  audience                 = "*"
   state_bucket_arn        = local.state_bucket_arn
   state_bucket_prefixes   = ["dev/"]
   state_lock_table_arns   = [local.state_lock_table_arn]
